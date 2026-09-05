@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI简历润色工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, sans-serif;
+        }
+        body {
+            max-width: 950px;
+            margin: 32px auto;
+            padding: 0 20px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            text-align: center;
+            color: #222;
+            margin-bottom:28px;
+        }
+        .item{
+            margin-bottom:18px;
+        }
+        label{
+            display:block;
+            margin-bottom:6px;
+            font-weight:500;
+        }
+        textarea{
+            width:100%;
+            min-height:220px;
+            padding:12px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            font-size:15px;
+            resize: vertical;
+        }
+        select{
+            padding: 8px 12px;
+            border-radius:6px;
+            border:1px solid #ccc;
+            font-size:15px;
+        }
+        button{
+            width:100%;
+            padding:12px;
+            background:#2b65ec;
+            color:white;
+            border:none;
+            border-radius:8px;
+            font-size:16px;
+            cursor:pointer;
+        }
+        button:disabled{
+            background:#84a3e8;
+            cursor:not-allowed;
+        }
+        #result{
+            margin-top:24px;
+            padding:16px;
+            background:#fff;
+            border-radius:8px;
+            white-space: pre-wrap;
+            border:1px solid #ddd;
+            min-height:120px;
+        }
+        .tip{
+            font-size:13px;
+            color:#666;
+            margin:4px 0 12px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI简历润色工具</h1>
+
+    <div class="item">
+        <label>原始简历内容</label>
+        <div class="tip">提示：按 Enter 提交； Shift + Enter 换行输入</div>
+        <textarea id="resumeText" placeholder="粘贴你的简历文字..."></textarea>
+    </div>
+
+    <div class="item">
+        <label>润色风格</label>
+        <select id="styleSelect">
+            <option value="简洁干练">简洁干练</option>
+            <option value="突出技术能力">突出技术能力</option>
+            <option value="正式商务">正式商务</option>
+        </select>
+    </div>
+
+    <button id="submitBtn">开始润色</button>
+
+    <div id="result"></div>
+
+
+    <script>
+        const resumeTextEl = document.getElementById('resumeText');
+        const styleSelectEl = document.getElementById('styleSelect');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultEl = document.getElementById('result');
+
+        // 回车键提交逻辑：Enter发送，Shift+Enter换行
+        resumeTextEl.addEventListener('keydown', function(e){
+            if(e.key === 'Enter' && !e.shiftKey){
+                e.preventDefault();
+                doSubmit();
+            }
+        })
+
+        submitBtn.addEventListener('click', doSubmit);
+
+
+        async function doSubmit(){
+            const resumeText = resumeTextEl.value.trim();
+            const style = styleSelectEl.value;
+
+            if(!resumeText){
+                resultEl.innerText = "⚠️请输入简历内容！";
+                return;
+            }
+
+            // 加载状态，禁止重复点击
+            submitBtn.disabled = true;
+            submitBtn.innerText = "提交中，请等待...";
+            resultEl.innerText = "AI正在润色，请稍候...";
+
+            try{
+                const resp = await fetch("/polish",{
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify({
+                        resume_text: resumeText,
+                        style: style
+                    })
+                })
+                const json = await resp.json();
+                if(json.code === 200){
+                    resultEl.innerText = json.data;
+                }else{
+                    resultEl.innerText = `⚠️${json.msg}`;
+                }
+            }catch(err){
+                resultEl.innerText = "⚠️网络请求失败，请检查服务是否正常启动";
+                console.error(err);
+            }finally{
+                submitBtn.disabled = false;
+                submitBtn.innerText = "开始润色";
+            }
+        }
+    </script>
+</body>
+</html>
